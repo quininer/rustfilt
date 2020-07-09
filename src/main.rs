@@ -57,7 +57,7 @@ impl Options {
 
                 macro_rules! fmt {
                     ( $output:expr ) => {
-                        if !self.include_hash {
+                        if self.include_hash {
                             write!($output, "{}", name)?;
                         } else {
                             write!($output, "{:#?}", name)?;
