@@ -24,7 +24,7 @@ struct Options {
     #[argh(switch)]
     include_hash: bool,
 
-    /// enable html escape
+    /// html escape
     #[argh(switch, short = 'e')]
     escape: bool,
 }
@@ -39,40 +39,43 @@ impl Options {
             let mut pos = 0;
 
             for mat in pattern.find_iter(line) {
-                assert!(pos <= mat.end());
+                debug_assert!(pos <= mat.end());
 
-                if pos >= mat.start() {
-                    pos = mat.end();
-                } else {
-                    let start = mem::replace(&mut pos, mat.end());
+                let start = mem::replace(&mut pos, mat.end());
+                if start < mat.start() {
                     let end = mat.start();
                     output.write_all(&line[start..end])?;
                 }
 
-                let name = mat.as_bytes()
-                    .to_str()
-                    .map_err(|err| io::Error::new(io::ErrorKind::Other, err))?;
-                let name = demangle(name);
+                let name = match mat.as_bytes().to_str() {
+                    Ok(name) => demangle(name),
+                    Err(_) => {
+                        output.write_all(mat.as_bytes())?;
+                        continue
+                    }
+                };
+
+                macro_rules! fmt {
+                    ( $output:expr ) => {
+                        if !self.include_hash {
+                            write!($output, "{}", name)?;
+                        } else {
+                            write!($output, "{:#?}", name)?;
+                        }
+                    }
+                }
 
                 if !self.escape {
-                    if !self.include_hash {
-                        write!(output, "{}", name)?;
-                    } else {
-                        write!(output, "{:#?}", name)?;
-                    }
+                    fmt!(output);
                 } else {
                     buf.clear();
-                    if !self.include_hash {
-                        write!(&mut buf, "{}", name)?;
-                    } else {
-                        write!(&mut buf, "{:#?}", name)?;
-                    }
+                    fmt!(&mut buf);
                     write!(output, "{}", HTMLEscape::new(&buf[..]))?;
                 }
             }
 
-            if pos < line.len() {
-                output.write_all(&line[pos..])?;
+            if let Some(buf) = line.get(pos..) {
+                output.write_all(buf)?;
             }
 
             output.flush()?;
