@@ -75,7 +75,9 @@ impl Options {
             }
 
             if let Some(buf) = line.get(pos..) {
-                output.write_all(buf)?;
+                if !buf.is_empty() {
+                    output.write_all(buf)?;
+                }
             }
 
             output.flush()?;
