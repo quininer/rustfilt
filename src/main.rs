@@ -6,7 +6,7 @@ use bstr::io::BufReadExt;
 use argh::FromArgs;
 use regex::bytes::Regex;
 use rustc_demangle::demangle;
-use v_htmlescape::HTMLEscape;
+use v_htmlescape::VHtmlescape;
 
 
 /// Rust demangle tool
@@ -30,7 +30,7 @@ struct Options {
 }
 
 impl Options {
-    fn stream(&self, input: &mut dyn BufRead, output: &mut dyn Write) -> anyhow::Result<()> {
+    fn stream(&self, mut input: &mut dyn BufRead, output: &mut dyn Write) -> anyhow::Result<()> {
         // from https://github.com/luser/rustfilt/blob/master/src/main.rs#L36
         let pattern = Regex::new(r"_(ZN|R)[\$\._[:alnum:]]*")?;
         let mut buf = Vec::new();
@@ -70,7 +70,7 @@ impl Options {
                 } else {
                     buf.clear();
                     fmt!(&mut buf);
-                    write!(output, "{}", HTMLEscape::new(&buf[..]))?;
+                    write!(output, "{}", VHtmlescape::new(&buf[..]))?;
                 }
             }
 
